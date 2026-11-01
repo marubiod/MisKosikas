@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MisKosikas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1b6b58">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#eef2ef;--sf:#fff;--ink:#16241f;--mut:#5d6e68;--ac:#1b6b58;--acs:#d7ebe4;--ln:#d3dcd8;--wr:#b4472f;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#121a17;--sf:#1b2622;--ink:#e6efeb;--mut:#93a39c;--ac:#5fc2a7;--acs:#24403a;--ln:#2e3d37;--wr:#e8896f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;padding-bottom:6rem}
+header{display:flex;justify-content:space-between;align-items:center;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1rem .8rem;position:sticky;top:0;background:var(--bg);z-index:2}
+h1{margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em;color:var(--ac)}
+main{max-width:720px;margin:0 auto;padding:0 1rem}
+input,textarea,button{font:inherit;color:inherit}
+input[type=search],input[type=text],input[type=date],input[type=number],textarea{width:100%;padding:.6rem .7rem;border:1px solid var(--ln);border-radius:8px;background:var(--sf)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+button{cursor:pointer;border:1px solid var(--ln);background:var(--sf);border-radius:8px;padding:.5rem .85rem}
+.pri{background:var(--ac);border-color:var(--ac);color:var(--bg);font-weight:600}
+.dg{color:var(--wr)}
+.ch{border-radius:99px;padding:.3rem .75rem;font-size:.9rem}
+.ch[aria-pressed=true]{background:var(--acs);border-color:var(--ac);color:var(--ac);font-weight:600}
+.fl{display:flex;flex-wrap:wrap;gap:.4rem;margin:.7rem 0}
+#cc{display:contents}
+.mut{color:var(--mut);font-size:.9rem;margin:.2rem 0}
+ul{list-style:none;margin:0;padding:0}
+#ls li{display:flex;align-items:center;gap:.8rem;padding:.7rem .2rem;border-bottom:1px solid var(--ln);cursor:pointer}
+#ls li.em{cursor:default;color:var(--mut);padding:2rem 0;border:0}
+#ls img,.ph{width:48px;height:48px;border-radius:8px;object-fit:cover;flex:none}
+.ph{background:var(--acs);color:var(--ac);display:grid;place-items:center;font-weight:700}
+.m{flex:1;min-width:0}.m b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tg{display:flex;flex-wrap:wrap;gap:.25rem}
+.tg i,.ct i{font-style:normal;font-size:.78rem;background:var(--acs);color:var(--ac);border-radius:99px;padding:.05rem .5rem}
+.pr{font-variant-numeric:tabular-nums;color:var(--mut)}
+.rp{width:26px;height:26px;accent-color:var(--ac);flex:none}
+.fab{position:fixed;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));padding:.8rem 1.2rem;border-radius:99px;box-shadow:0 2px 10px #0004}
+dialog{width:min(560px,calc(100vw - 1rem));max-height:92vh;border:0;border-radius:14px;background:var(--sf);color:var(--ink);padding:1.1rem}
+dialog::backdrop{background:#0008}
+dialog h2{margin:0 0 .6rem}dialog h3{margin:1rem 0 .3rem}
+dialog label{display:block;margin:.6rem 0 .1rem;font-size:.9rem;color:var(--mut)}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.row label.in{display:flex;align-items:center;gap:.5rem;color:var(--ink);font-size:1rem}
+.act{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap}
+.cs button{padding:.1rem .5rem;font-size:.85rem;border-radius:99px;margin:0 .3rem .3rem 0}
+.cp{display:flex;gap:.5rem;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--ln);font-size:.92rem}
+.cp span{flex:1}.cp button{padding:.15rem .5rem;font-size:.8rem}
+.box{background:var(--bg);border-radius:10px;padding:.7rem;margin:.6rem 0}
+.fi{max-width:100%;max-height:160px;border-radius:8px;display:block;margin:.4rem 0}
+#pa{display:none}
+@media print{body>*:not(#pa){display:none!important}#pa{display:block;color:#000}#pa table{border-collapse:collapse;width:100%;font-size:11pt}#pa td,#pa th{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}}
+</style></head><body>
+<header><h1>MisKosikas</h1><button id="bd">Datos</button></header>
+<main>
+<input id="q" type="search" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+<div class="fl"><button id="br" class="ch" aria-pressed="false">Por reponer</button><span id="cc"></span></div>
+<p id="ct" class="mut"></p>
+<ul id="ls"></ul>
+</main>
+<button id="nw" class="fab pri">Nuevo producto</button>
+<dialog id="fd"></dialog>
+<dialog id="dd">
+<h2>Datos</h2>
+<h3>Compartir lo que ves en pantalla</h3>
+<p class="mut">Usa los filtros y la búsqueda actuales. Para el PDF, elige «Guardar como PDF» en el diálogo de impresión.</p>
+<div class="row"><button id="xp">Crear PDF</button><button id="xc">Descargar CSV</button></div>
+<h3>Copia de seguridad completa</h3>
+<p class="mut">Incluye productos, categorías, compras e imágenes.</p>
+<div class="row"><button id="xb">Exportar copia</button><button id="ib">Importar copia</button><input id="if" type="file" accept=".json,application/json" hidden></div>
+<div id="im" class="box" hidden></div>
+<div class="act"><button id="dx">Cerrar</button></div>
+</dialog>
+<section id="pa"></section>
+<script>
+const $=s=>document.querySelector(s),hoy=()=>new Date().toLocaleDateString('sv');
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const eur=n=>n==null?'—':Number(n).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+const last=p=>[...p.compras].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+let db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend;
+const open=()=>new Promise((ok,ko)=>{const r=indexedDB.open('miskosikas',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});
+const tx=(m,f)=>new Promise((ok,ko)=>{const t=db.transaction('p',m),r=f(t.objectStore('p'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)});
+const load=async()=>{P=await tx('readonly',s=>s.getAll())};
+const save=async p=>{await tx('readwrite',s=>s.put(p));await load();render()};
+const vis=()=>P.filter(p=>(!F.rep||p.recomprar)&&(!F.cats.size||p.categorias.some(c=>F.cats.has(c)))&&(!F.q||norm(p.nombre).includes(norm(F.q)))).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+const url=b=>{const u=URL.createObjectURL(b);urls.push(u);return u};
+
+function render(){
+  urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
+  const cats=[...new Set(P.flatMap(p=>p.categorias))].sort((a,b)=>a.localeCompare(b,'es'));
+  [...F.cats].forEach(c=>{if(!cats.includes(c))F.cats.delete(c)});
+  $('#cc').innerHTML=cats.map(c=>`<button class="ch" aria-pressed="${F.cats.has(c)}" data-c="${e(c)}">${e(c)}</button>`).join('');
+  $('#br').setAttribute('aria-pressed',F.rep);
+  const v=vis();
+  $('#ct').textContent=P.length?`${v.length} de ${P.length} productos`:'';
+  $('#ls').innerHTML=v.length?v.map(p=>{const l=last(p);return `<li data-id="${p.id}">${p.imagen?`<img src="${url(p.imagen)}" alt="">`:`<span class="ph">${e((p.nombre[0]||'').toUpperCase())}</span>`}<div class="m"><b>${e(p.nombre)}</b><div class="tg">${p.categorias.map(c=>`<i>${e(c)}</i>`).join('')}</div></div><span class="pr">${l?eur(l.precio):'—'}</span><input type="checkbox" class="rp" ${p.recomprar?'checked':''} aria-label="Comprar de nuevo: ${e(p.nombre)}"></li>`}).join(''):`<li class="em">${P.length?'Ningún producto coincide con los filtros.':'Aún no hay productos. Pulsa «Nuevo producto» para añadir el primero.'}</li>`;
+}
+
+/* ---------- Ficha ---------- */
+function sync(){
+  if(!$('#fn'))return;
+  cur.nombre=$('#fn').value;cur.detalle=$('#fdt').value;cur.uso=$('#fu').value;cur.recomprar=$('#fr').checked;
+  if($('#cfe'))cf={...cf,fecha:$('#cfe').value,lugar:$('#cfl').value,precio:$('#cfp').value};
+}
+function ficha(id){
+  cur=id?structuredClone(P.find(p=>p.id===id)):{nombre:'',detalle:'',categorias:[],uso:'',recomprar:false,compras:[],imagen:null};
+  cf=id?null:{i:-1,fecha:hoy(),lugar:'',precio:''};
+  draw();$('#fd').showModal();if(!id)$('#fn').focus();
+}
+function draw(){
+  sync();
+  if(iu)URL.revokeObjectURL(iu);iu=cur.imagen?URL.createObjectURL(cur.imagen):'';
+  const all=[...new Set(P.flatMap(p=>p.categorias))].filter(c=>!cur.categorias.includes(c));
+  const pr=cur.compras.map(c=>c.precio).filter(x=>x!=null);
+  const best=cur.compras.filter(c=>c.precio!=null&&c.lugar).sort((a,b)=>a.precio-b.precio)[0];
+  const cs=[...cur.compras.entries()].sort((a,b)=>(b[1].fecha||'').localeCompare(a[1].fecha||''));
+  $('#fd').innerHTML=`<h2>${cur.id?'Producto':'Nuevo producto'}</h2>
+<label for="fn">Nombre</label><input id="fn" type="text" value="${e(cur.nombre)}">
+<label for="fdt">Detalle</label><textarea id="fdt" rows="2" placeholder="Talla, tamaño de envase…">${e(cur.detalle)}</textarea>
+<label for="fc">Categorías</label>
+<div class="cs">${cur.categorias.map(c=>`<button data-a="delcat" data-v="${e(c)}" aria-label="Quitar ${e(c)}">${e(c)} ×</button>`).join('')}</div>
+<div class="row"><input id="fc" type="text" list="cl" placeholder="Escribe una categoría" style="flex:1"><button data-a="addcat">Añadir</button></div>
+<datalist id="cl">${all.map(c=>`<option value="${e(c)}">`).join('')}</datalist>
+<label for="fu">Uso</label><textarea id="fu" rows="2">${e(cur.uso)}</textarea>
+<div class="row" style="margin-top:.7rem"><label class="in"><input id="fr" type="checkbox" class="rp" ${cur.recomprar?'checked':''}> Comprar de nuevo</label></div>
+<label>Imagen</label>${iu?`<img class="fi" src="${iu}" alt="">`:''}
+<div class="row"><input id="fi" type="file" accept="image/*">${iu?'<button data-a="noimg">Quitar imagen</button>':''}</div>
+<h3>Compras</h3>
+${pr.length?`<p class="mut">${cur.compras.length} compra${cur.compras.length>1?'s':''} · mínimo ${eur(Math.min(...pr))} · máximo ${eur(Math.max(...pr))}${best?` · más barato en ${e(best.lugar)}`:''}</p>`:''}
+${cs.map(([i,c])=>`<div class="cp"><span>${e(c.fecha||'Sin fecha')} · ${e(c.lugar||'Sin lugar')} · ${eur(c.precio)}</span><button data-a="edc" data-i="${i}">Editar</button><button class="dg" data-a="boc" data-i="${i}">Borrar</button></div>`).join('')}
+${cf?`<div class="box"><label for="cfe">Fecha</label><input id="cfe" type="date" value="${e(cf.fecha)}"><label for="cfl">Lugar (comercio, url…)</label><input id="cfl" type="text" value="${e(cf.lugar)}"><label for="cfp">Precio (€)</label><input id="cfp" type="number" step="0.01" min="0" inputmode="decimal" value="${e(cf.precio)}"><div class="act"><button data-a="nocf">Cancelar</button><button class="pri" data-a="okcf">${cf.i<0?'Registrar compra':'Guardar cambios'}</button></div></div>`:`<div class="row" style="margin-top:.5rem"><button data-a="newc">Registrar compra</button></div>`}
+<div class="act">${cur.id?'<button class="dg" data-a="del" style="margin-right:auto">Eliminar producto</button>':''}<button data-a="x">Cancelar</button><button class="pri" data-a="ok">Guardar producto</button></div>`;
+}
+function commit(){
+  const x=cf,pc=x.precio===''?null:parseFloat(String(x.precio).replace(',','.')),c={fecha:x.fecha||hoy(),lugar:(x.lugar||'').trim(),precio:Number.isNaN(pc)?null:pc};
+  if(x.i<0){if(cur.compras.length)cur.recomprar=false;cur.compras.push(c)}else cur.compras[x.i]=c;
+  cf=null;
+}
+function addcat(){
+  const i=$('#fc'),v=i.value.trim();if(!v)return;
+  if(!cur.categorias.some(c=>norm(c)===norm(v))){const ex=P.flatMap(p=>p.categorias).find(c=>norm(c)===norm(v));cur.categorias.push(ex||v)}
+  i.value='';draw();$('#fc').focus();
+}
+const resize=f=>new Promise(ok=>{const i=new Image(),u=URL.createObjectURL(f);i.onload=()=>{const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(ok,'image/jpeg',.8)};i.src=u});
+
+$('#fd').addEventListener('click',async ev=>{
+  const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a==='x')return $('#fd').close();
+  if(a==='addcat')return addcat();
+  if(a==='delcat'){sync();cur.categorias=cur.categorias.filter(c=>c!==b.dataset.v);return draw()}
+  if(a==='noimg'){sync();cur.imagen=null;return draw()}
+  if(a==='newc'){sync();const l=last(cur);cf={i:-1,fecha:hoy(),lugar:l?.lugar||'',precio:l?.precio??''};return draw()}
+  if(a==='edc'){sync();const i=+b.dataset.i;cf={i,...cur.compras[i]};return draw()}
+  if(a==='boc'){if(confirm('¿Borrar esta compra?')){sync();cur.compras.splice(+b.dataset.i,1);draw()}return}
+  if(a==='nocf'){sync();cf=null;return draw()}
+  if(a==='okcf'){sync();commit();return draw()}
+  if(a==='del'){if(confirm('¿Eliminar este producto y todo su historial?')){await tx('readwrite',s=>s.delete(cur.id));await load();render();$('#fd').close()}return}
+  if(a==='ok'){
+    sync();const v=$('#fc').value.trim();if(v)addcat();
+    if(!cur.nombre.trim()){alert('Escribe el nombre del producto.');return $('#fn').focus()}
+    if(cf&&!cur.id&&!cur.compras.length&&(cf.lugar||cf.precio!==''))commit();
+    cur.nombre=cur.nombre.trim();await save(cur);$('#fd').close();
+  }
+});
+$('#fd').addEventListener('keydown',ev=>{if(ev.target.id==='fc'&&(ev.key==='Enter'||ev.key===',')){ev.preventDefault();addcat()}});
+$('#fd').addEventListener('change',async ev=>{if(ev.target.id==='fi'&&ev.target.files[0]){sync();cur.imagen=await resize(ev.target.files[0]);draw()}});
+$('#fd').addEventListener('close',()=>{if(iu){URL.revokeObjectURL(iu);iu=''}});
+
+/* ---------- Lista y filtros ---------- */
+$('#q').addEventListener('input',ev=>{F.q=ev.target.value;render()});
+$('#br').addEventListener('click',()=>{F.rep=!F.rep;render()});
+$('#cc').addEventListener('click',ev=>{const c=ev.target.dataset.c;if(c==null)return;F.cats.has(c)?F.cats.delete(c):F.cats.add(c);render()});
+$('#ls').addEventListener('click',async ev=>{
+  const li=ev.target.closest('li[data-id]');if(!li)return;const id=+li.dataset.id;
+  if(ev.target.classList.contains('rp')){const p=P.find(x=>x.id===id);p.recomprar=ev.target.checked;await save(p);return}
+  ficha(id);
+});
+$('#nw').addEventListener('click',()=>ficha());
+
+/* ---------- Datos: compartir y copia de seguridad ---------- */
+const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
+$('#bd').addEventListener('click',()=>{$('#im').hidden=true;$('#dd').showModal()});
+$('#dx').addEventListener('click',()=>$('#dd').close());
+$('#xc').addEventListener('click',()=>{
+  const h=['Nombre','Categorías','Detalle','Uso','Fecha última compra','Lugar','Precio','Comprar de nuevo'];
+  const rows=vis().map(p=>{const l=last(p)||{};return [p.nombre,p.categorias.join(', '),p.detalle,p.uso,l.fecha,l.lugar,l.precio==null?'':String(l.precio).replace('.',','),p.recomprar?'Sí':'No']});
+  dl(new Blob(['\ufeff'+[h,...rows].map(r=>r.map(q).join(';')).join('\r\n')],{type:'text/csv'}),`MisKosikas-${hoy()}.csv`);
+});
+$('#xp').addEventListener('click',()=>{
+  const v=vis(),f=[...F.cats].join(', ');
+  $('#pa').innerHTML=`<h2>MisKosikas · ${hoy()}</h2><p>${v.length} productos${f?` · Categorías: ${e(f)}`:''}${F.rep?' · Solo por reponer':''}</p><table><tr><th>Nombre</th><th>Categorías</th><th>Detalle</th><th>Última compra</th><th>Precio</th><th>Reponer</th></tr>${v.map(p=>{const l=last(p)||{};return `<tr><td>${e(p.nombre)}</td><td>${e(p.categorias.join(', '))}</td><td>${e(p.detalle)}</td><td>${e(l.fecha||'')} ${e(l.lugar||'')}</td><td>${l.precio==null?'':eur(l.precio)}</td><td>${p.recomprar?'Sí':''}</td></tr>`}).join('')}</table>`;
+  $('#dd').close();setTimeout(()=>print(),100);
+});
+const b2d=b=>new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(b)});
+$('#xb').addEventListener('click',async()=>{
+  const ps=[];for(const p of P)ps.push({...p,imagen:p.imagen?await b2d(p.imagen):null});
+  dl(new Blob([JSON.stringify({app:'MisKosikas',version:1,fecha:hoy(),productos:ps})],{type:'application/json'}),`MisKosikas-copia-${hoy()}.json`);
+});
+$('#ib').addEventListener('click',()=>$('#if').click());
+$('#if').addEventListener('change',async ev=>{
+  const f=ev.target.files[0];ev.target.value='';if(!f)return;const im=$('#im');im.hidden=false;
+  try{const d=JSON.parse(await f.text());if(d.app!=='MisKosikas'||!Array.isArray(d.productos))throw 0;pend=d.productos;
+    im.innerHTML=`<p>La copia contiene ${pend.length} productos. ¿Qué quieres hacer?</p><div class="row"><button class="dg" data-m="sust">Sustituir los datos actuales</button><button class="pri" data-m="add">Añadir sin duplicar</button><button data-m="no">Cancelar</button></div>`;
+  }catch{im.textContent='El archivo no es una copia válida de MisKosikas.'}
+});
+$('#im').addEventListener('click',async ev=>{
+  const m=ev.target.dataset.m;if(!m)return;const im=$('#im');
+  if(m==='no'){im.hidden=true;return}
+  const its=[];for(const x of pend){const o={...x,categorias:x.categorias||[],compras:x.compras||[],imagen:x.imagen?await (await fetch(x.imagen)).blob():null};delete o.id;its.push(o)}
+  let add=its;
+  if(m==='add'){const k=p=>norm(p.nombre)+'|'+norm(p.detalle||''),have=new Set(P.map(k));add=its.filter(p=>!have.has(k(p)))}
+  await tx('readwrite',s=>{if(m==='sust')s.clear();add.forEach(i=>s.put(i))});
+  await load();render();im.textContent=m==='sust'?`Datos sustituidos: ${add.length} productos.`:`Se han añadido ${add.length} productos nuevos.`;
+});
+
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
+open().then(async d=>{db=d;await load();render()}).catch(()=>{$('#ls').innerHTML='<li class="em">No se puede usar el almacenamiento del navegador. Abre el archivo en un navegador normal, sin modo privado.</li>'});
+</script></body></html>
