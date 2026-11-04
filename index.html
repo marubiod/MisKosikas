@@ -3,12 +3,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>MisKosikas</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1b6b58">
+<meta name="theme-color" content="#6b2d5c">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{--bg:#eef2ef;--sf:#fff;--ink:#16241f;--mut:#5d6e68;--ac:#1b6b58;--acs:#d7ebe4;--ln:#d3dcd8;--wr:#b4472f;color-scheme:light dark}
-@media(prefers-color-scheme:dark){:root{--bg:#121a17;--sf:#1b2622;--ink:#e6efeb;--mut:#93a39c;--ac:#5fc2a7;--acs:#24403a;--ln:#2e3d37;--wr:#e8896f}}
+:root{--bg:#f5eff4;--sf:#fff;--ink:#2b1a29;--mut:#76657a;--ac:#6b2d5c;--acs:#ecdbe7;--ln:#ddd0da;--wr:#b4472f;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#1a121a;--sf:#261b26;--ink:#f1e7f0;--mut:#a995a7;--ac:#d28fc2;--acs:#3e2a3b;--ln:#3b2c3a;--wr:#e8896f}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;padding-bottom:6rem}
 header{display:flex;justify-content:space-between;align-items:center;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1rem .8rem;position:sticky;top:0;background:var(--bg);z-index:2}
@@ -48,6 +48,11 @@ dialog label{display:block;margin:.6rem 0 .1rem;font-size:.9rem;color:var(--mut)
 .cp span{flex:1}.cp button{padding:.15rem .5rem;font-size:.8rem}
 .box{background:var(--bg);border-radius:10px;padding:.7rem;margin:.6rem 0}
 .fi{max-width:100%;max-height:160px;border-radius:8px;display:block;margin:.4rem 0}
+select{width:100%;padding:.6rem .7rem;border:1px solid var(--ln);border-radius:8px;background:var(--sf);color:var(--ink);font:inherit}
+textarea[data-te]{cursor:pointer}
+#ed canvas{width:100%;max-width:300px;aspect-ratio:1;display:block;margin:.5rem auto;border:2px solid var(--ac);border-radius:6px;touch-action:none;cursor:grab;background:#fff}
+#ed input[type=range]{width:100%;accent-color:var(--ac)}
+#te textarea{width:100%;height:45vh;padding:.7rem;border:1px solid var(--ln);border-radius:8px;background:var(--sf);font-size:1.05rem}
 #pa{display:none}
 @media print{body>*:not(#pa){display:none!important}#pa{display:block;color:#000}#pa table{border-collapse:collapse;width:100%;font-size:11pt}#pa td,#pa th{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}}
 </style></head><body>
@@ -71,6 +76,8 @@ dialog label{display:block;margin:.6rem 0 .1rem;font-size:.9rem;color:var(--mut)
 <div id="im" class="box" hidden></div>
 <div class="act"><button id="dx">Cerrar</button></div>
 </dialog>
+<dialog id="ed"><h2>Ajustar foto</h2><canvas id="ec" width="300" height="300"></canvas><label for="ez">Ampliar</label><input id="ez" type="range" min="1" max="4" step="0.01" value="1"><div class="row" style="margin-top:.6rem"><label class="in"><input id="em" type="checkbox" class="rp" checked> Mejorar color y contraste</label></div><p class="mut">Arrastra la foto para centrarla.</p><div class="act"><button id="ex">Cancelar</button><button id="eo" class="pri">Usar esta foto</button></div></dialog>
+<dialog id="te"><h2 id="tt"></h2><textarea id="ta"></textarea><div class="act"><button id="tx">Cancelar</button><button id="to" class="pri">Aceptar</button></div></dialog>
 <section id="pa"></section>
 <script>
 const $=s=>document.querySelector(s),hoy=()=>new Date().toLocaleDateString('sv');
@@ -78,7 +85,8 @@ const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 const eur=n=>n==null?'—':Number(n).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
 const last=p=>[...p.compras].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
-let db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend;
+const SEED=['cuidado personal','moda','tecnología','hogar'];
+let nc=false,db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend;
 const open=()=>new Promise((ok,ko)=>{const r=indexedDB.open('miskosikas',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});
 const tx=(m,f)=>new Promise((ok,ko)=>{const t=db.transaction('p',m),r=f(t.objectStore('p'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)});
 const load=async()=>{P=await tx('readonly',s=>s.getAll())};
@@ -106,23 +114,22 @@ function sync(){
 function ficha(id){
   cur=id?structuredClone(P.find(p=>p.id===id)):{nombre:'',detalle:'',categorias:[],uso:'',recomprar:false,compras:[],imagen:null};
   cf=id?null:{i:-1,fecha:hoy(),lugar:'',precio:''};
-  draw();$('#fd').showModal();if(!id)$('#fn').focus();
+  $('#fd').innerHTML='';nc=false;draw();$('#fd').showModal();if(!id)$('#fn').focus();
 }
 function draw(){
   sync();
   if(iu)URL.revokeObjectURL(iu);iu=cur.imagen?URL.createObjectURL(cur.imagen):'';
-  const all=[...new Set(P.flatMap(p=>p.categorias))].filter(c=>!cur.categorias.includes(c));
+  const all=[...new Set([...SEED,...P.flatMap(p=>p.categorias)])].sort((a,b)=>a.localeCompare(b,'es')).filter(c=>!cur.categorias.includes(c));
   const pr=cur.compras.map(c=>c.precio).filter(x=>x!=null);
   const best=cur.compras.filter(c=>c.precio!=null&&c.lugar).sort((a,b)=>a.precio-b.precio)[0];
   const cs=[...cur.compras.entries()].sort((a,b)=>(b[1].fecha||'').localeCompare(a[1].fecha||''));
   $('#fd').innerHTML=`<h2>${cur.id?'Producto':'Nuevo producto'}</h2>
 <label for="fn">Nombre</label><input id="fn" type="text" value="${e(cur.nombre)}">
-<label for="fdt">Detalle</label><textarea id="fdt" rows="2" placeholder="Talla, tamaño de envase…">${e(cur.detalle)}</textarea>
+<label for="fdt">Detalle</label><textarea id="fdt" rows="2" readonly data-te="Detalle" placeholder="Talla, tamaño de envase…">${e(cur.detalle)}</textarea>
 <label for="fc">Categorías</label>
-<div class="cs">${cur.categorias.map(c=>`<button data-a="delcat" data-v="${e(c)}" aria-label="Quitar ${e(c)}">${e(c)} ×</button>`).join('')}</div>
-<div class="row"><input id="fc" type="text" list="cl" placeholder="Escribe una categoría" style="flex:1"><button data-a="addcat">Añadir</button></div>
-<datalist id="cl">${all.map(c=>`<option value="${e(c)}">`).join('')}</datalist>
-<label for="fu">Uso</label><textarea id="fu" rows="2">${e(cur.uso)}</textarea>
+<div class="cs">${cur.categorias.length?cur.categorias.map(c=>`<button data-a="delcat" data-v="${e(c)}" aria-label="Quitar ${e(c)}">${e(c)} ×</button>`).join(''):'<span class="mut">Sin categorías</span>'}</div>
+${nc?`<div class="row"><input id="fc" type="text" placeholder="Nombre de la nueva categoría" style="flex:1"><button data-a="addcat">Añadir</button><button data-a="nonc">Cancelar</button></div>`:`<select id="fs" aria-label="Añadir categoría"><option value="">Añadir categoría…</option>${all.map(c=>`<option value="${e(c)}">${e(c)}</option>`).join('')}<option value="__new">＋ Nueva categoría…</option></select>`}
+<label for="fu">Uso</label><textarea id="fu" rows="2" readonly data-te="Uso" placeholder="Toca para escribir…">${e(cur.uso)}</textarea>
 <div class="row" style="margin-top:.7rem"><label class="in"><input id="fr" type="checkbox" class="rp" ${cur.recomprar?'checked':''}> Comprar de nuevo</label></div>
 <label>Imagen</label>${iu?`<img class="fi" src="${iu}" alt="">`:''}
 <div class="row"><input id="fi" type="file" accept="image/*">${iu?'<button data-a="noimg">Quitar imagen</button>':''}</div>
@@ -140,7 +147,7 @@ function commit(){
 function addcat(){
   const i=$('#fc'),v=i.value.trim();if(!v)return;
   if(!cur.categorias.some(c=>norm(c)===norm(v))){const ex=P.flatMap(p=>p.categorias).find(c=>norm(c)===norm(v));cur.categorias.push(ex||v)}
-  i.value='';draw();$('#fc').focus();
+  nc=false;draw();
 }
 const resize=f=>new Promise(ok=>{const i=new Image(),u=URL.createObjectURL(f);i.onload=()=>{const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(ok,'image/jpeg',.8)};i.src=u});
 
@@ -149,6 +156,7 @@ $('#fd').addEventListener('click',async ev=>{
   if(a==='x')return $('#fd').close();
   if(a==='addcat')return addcat();
   if(a==='delcat'){sync();cur.categorias=cur.categorias.filter(c=>c!==b.dataset.v);return draw()}
+  if(a==='nonc'){sync();nc=false;return draw()}
   if(a==='noimg'){sync();cur.imagen=null;return draw()}
   if(a==='newc'){sync();const l=last(cur);cf={i:-1,fecha:hoy(),lugar:l?.lugar||'',precio:l?.precio??''};return draw()}
   if(a==='edc'){sync();const i=+b.dataset.i;cf={i,...cur.compras[i]};return draw()}
@@ -157,15 +165,70 @@ $('#fd').addEventListener('click',async ev=>{
   if(a==='okcf'){sync();commit();return draw()}
   if(a==='del'){if(confirm('¿Eliminar este producto y todo su historial?')){await tx('readwrite',s=>s.delete(cur.id));await load();render();$('#fd').close()}return}
   if(a==='ok'){
-    sync();const v=$('#fc').value.trim();if(v)addcat();
+    sync();const fc=$('#fc'),v=fc?fc.value.trim():'';if(v)addcat();
     if(!cur.nombre.trim()){alert('Escribe el nombre del producto.');return $('#fn').focus()}
     if(cf&&!cur.id&&!cur.compras.length&&(cf.lugar||cf.precio!==''))commit();
     cur.nombre=cur.nombre.trim();await save(cur);$('#fd').close();
   }
 });
 $('#fd').addEventListener('keydown',ev=>{if(ev.target.id==='fc'&&(ev.key==='Enter'||ev.key===',')){ev.preventDefault();addcat()}});
-$('#fd').addEventListener('change',async ev=>{if(ev.target.id==='fi'&&ev.target.files[0]){sync();cur.imagen=await resize(ev.target.files[0]);draw()}});
-$('#fd').addEventListener('close',()=>{if(iu){URL.revokeObjectURL(iu);iu=''}});
+$('#fd').addEventListener('change',ev=>{
+  if(ev.target.id==='fs'){const v=ev.target.value;sync();if(v==='__new'){nc=true;draw();$('#fc').focus()}else if(v){cur.categorias.push(v);draw()}}
+  if(ev.target.id==='fi'&&ev.target.files[0]){editar(ev.target.files[0]);ev.target.value=''}
+});
+$('#fd').addEventListener('close',()=>{if(iu){URL.revokeObjectURL(iu);iu=''}$('#fd').innerHTML=''});
+
+/* ---------- Editor de foto ---------- */
+let src,zm=1,ox=0,oy=0,dr=null;
+const EC=$('#ec'),ex=EC.getContext('2d',{willReadFrequently:true});
+function editar(f){
+  const u=URL.createObjectURL(f),i=new Image();
+  i.onload=()=>{URL.revokeObjectURL(u);src=i;zm=1;ox=oy=0;$('#ez').value=1;$('#em').checked=true;pintar();$('#ed').showModal()};
+  i.onerror=()=>{URL.revokeObjectURL(u);alert('No se puede leer esa imagen.')};
+  i.src=u;
+}
+function pintar(){
+  const b=Math.max(300/src.width,300/src.height)*zm,w=src.width*b,h=src.height*b,mx=(w-300)/2,my=(h-300)/2;
+  ox=Math.max(-mx,Math.min(mx,ox));oy=Math.max(-my,Math.min(my,oy));
+  ex.fillStyle='#fff';ex.fillRect(0,0,300,300);ex.drawImage(src,150+ox-w/2,150+oy-h/2,w,h);
+  if($('#em').checked)mejora();
+}
+function mejora(){
+  const d=ex.getImageData(0,0,300,300),a=d.data,H=new Uint32Array(256),n=90000;
+  for(let i=0;i<a.length;i+=4)H[Math.round(.299*a[i]+.587*a[i+1]+.114*a[i+2])]++;
+  let s=0,lo=0,hi=255;
+  for(let v=0;v<256;v++){s+=H[v];if(s>=n*.01){lo=v;break}}
+  s=0;for(let v=255;v>=0;v--){s+=H[v];if(s>=n*.01){hi=v;break}}
+  if(hi-lo<30){lo=0;hi=255}
+  const k=255/(hi-lo);
+  for(let i=0;i<a.length;i+=4){
+    let r=(a[i]-lo)*k,g=(a[i+1]-lo)*k,b=(a[i+2]-lo)*k;
+    const y=.299*r+.587*g+.114*b;
+    a[i]=y+(r-y)*1.2;a[i+1]=y+(g-y)*1.2;a[i+2]=y+(b-y)*1.2;
+  }
+  ex.putImageData(d,0,0);
+}
+$('#ez').addEventListener('input',ev=>{zm=+ev.target.value;pintar()});
+$('#em').addEventListener('change',pintar);
+EC.addEventListener('pointerdown',ev=>{dr={x:ev.clientX,y:ev.clientY,ox,oy};EC.setPointerCapture(ev.pointerId)});
+EC.addEventListener('pointermove',ev=>{if(!dr)return;const k=300/EC.clientWidth;ox=dr.ox+(ev.clientX-dr.x)*k;oy=dr.oy+(ev.clientY-dr.y)*k;pintar()});
+['pointerup','pointercancel'].forEach(t=>EC.addEventListener(t,()=>{dr=null}));
+$('#ex').addEventListener('click',()=>$('#ed').close());
+$('#eo').addEventListener('click',async()=>{
+  const tb=q=>new Promise(r=>EC.toBlob(r,'image/jpeg',q));
+  let q=.7,b=await tb(q);
+  while(b.size>20000&&q>.31){q=Math.round((q-.1)*10)/10;b=await tb(q)}
+  cur.imagen=b;$('#ed').close();draw();
+});
+
+/* ---------- Cuadro de texto grande (Detalle y Uso) ---------- */
+let tg;
+$('#fd').addEventListener('click',ev=>{
+  const t=ev.target.closest('textarea[data-te]');if(!t)return;
+  tg=t;$('#tt').textContent=t.dataset.te;$('#ta').value=t.value;$('#te').showModal();$('#ta').focus();
+});
+$('#tx').addEventListener('click',()=>$('#te').close());
+$('#to').addEventListener('click',()=>{tg.value=$('#ta').value;$('#te').close();sync()});
 
 /* ---------- Lista y filtros ---------- */
 $('#q').addEventListener('input',ev=>{F.q=ev.target.value;render()});
