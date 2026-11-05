@@ -53,6 +53,7 @@ textarea[data-te]{cursor:pointer}
 #ed canvas{width:100%;max-width:300px;aspect-ratio:1;display:block;margin:.5rem auto;border:2px solid var(--ac);border-radius:6px;touch-action:none;cursor:grab;background:#fff}
 #ed input[type=range]{width:100%;accent-color:var(--ac)}
 #te textarea{width:100%;height:45vh;padding:.7rem;border:1px solid var(--ln);border-radius:8px;background:var(--sf);font-size:1.05rem}
+.fsel{width:auto;max-width:100%;border-radius:99px;padding:.3rem .7rem;font-size:.9rem}
 #pa{display:none}
 @media print{body>*:not(#pa){display:none!important}#pa{display:block;color:#000}#pa table{border-collapse:collapse;width:100%;font-size:11pt}#pa td,#pa th{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}}
 </style></head><body>
@@ -70,6 +71,9 @@ textarea[data-te]{cursor:pointer}
 <h3>Compartir lo que ves en pantalla</h3>
 <p class="mut">Usa los filtros y la búsqueda actuales. Para el PDF, elige «Guardar como PDF» en el diálogo de impresión.</p>
 <div class="row"><button id="xp">Crear PDF</button><button id="xc">Descargar CSV</button></div>
+<h3>Grupos de productos</h3>
+<p class="mut">Renombra o elimina las categorías que has creado.</p>
+<div class="row"><button id="xg">Gestión Grupos</button></div>
 <h3>Copia de seguridad completa</h3>
 <p class="mut">Incluye productos, categorías, compras e imágenes.</p>
 <div class="row"><button id="xb">Exportar copia</button><button id="ib">Importar copia</button><input id="if" type="file" accept=".json,application/json" hidden></div>
@@ -78,6 +82,7 @@ textarea[data-te]{cursor:pointer}
 </dialog>
 <dialog id="ed"><h2>Ajustar foto</h2><canvas id="ec" width="300" height="300"></canvas><label for="ez">Ampliar</label><input id="ez" type="range" min="1" max="4" step="0.01" value="1"><div class="row" style="margin-top:.6rem"><label class="in"><input id="em" type="checkbox" class="rp" checked> Mejorar color y contraste</label></div><p class="mut">Arrastra la foto para centrarla.</p><div class="act"><button id="ex">Cancelar</button><button id="eo" class="pri">Usar esta foto</button></div></dialog>
 <dialog id="te"><h2 id="tt"></h2><textarea id="ta"></textarea><div class="act"><button id="tx">Cancelar</button><button id="to" class="pri">Aceptar</button></div></dialog>
+<dialog id="gg"><h2>Gestión de grupos</h2><div id="gl"></div><div class="act"><button id="gx">Cerrar</button></div></dialog>
 <section id="pa"></section>
 <script>
 const $=s=>document.querySelector(s),hoy=()=>new Date().toLocaleDateString('sv');
@@ -86,7 +91,11 @@ const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/
 const eur=n=>n==null?'—':Number(n).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
 const last=p=>[...p.compras].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
 const SEED=['cuidado personal','moda','tecnología','hogar'];
-let nc=false,db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend;
+let nc=false,db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend,pendG=[];
+let G;try{G=JSON.parse(localStorage.getItem('mk-grupos'))}catch{}
+if(!Array.isArray(G))G=[...SEED];
+const gsave=()=>{try{localStorage.setItem('mk-grupos',JSON.stringify(G))}catch{}};
+const grupos=()=>[...new Set([...G,...P.flatMap(p=>p.categorias)])].sort((a,b)=>a.localeCompare(b,'es'));
 const open=()=>new Promise((ok,ko)=>{const r=indexedDB.open('miskosikas',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});
 const tx=(m,f)=>new Promise((ok,ko)=>{const t=db.transaction('p',m),r=f(t.objectStore('p'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)});
 const load=async()=>{P=await tx('readonly',s=>s.getAll())};
@@ -98,7 +107,8 @@ function render(){
   urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
   const cats=[...new Set(P.flatMap(p=>p.categorias))].sort((a,b)=>a.localeCompare(b,'es'));
   [...F.cats].forEach(c=>{if(!cats.includes(c))F.cats.delete(c)});
-  $('#cc').innerHTML=cats.map(c=>`<button class="ch" aria-pressed="${F.cats.has(c)}" data-c="${e(c)}">${e(c)}</button>`).join('');
+  const rest=cats.filter(c=>!F.cats.has(c));
+  $('#cc').innerHTML=[...F.cats].map(c=>`<button class="ch" aria-pressed="true" data-c="${e(c)}" aria-label="Quitar filtro ${e(c)}">${e(c)} ×</button>`).join('')+(rest.length?`<select class="fsel" aria-label="Filtrar por grupo"><option value="">${F.cats.size?'＋ Añadir grupo':'Filtrar por grupo…'}</option>${rest.map(c=>`<option value="${e(c)}">${e(c)}</option>`).join('')}</select>`:'');
   $('#br').setAttribute('aria-pressed',F.rep);
   const v=vis();
   $('#ct').textContent=P.length?`${v.length} de ${P.length} productos`:'';
@@ -119,7 +129,7 @@ function ficha(id){
 function draw(){
   sync();
   if(iu)URL.revokeObjectURL(iu);iu=cur.imagen?URL.createObjectURL(cur.imagen):'';
-  const all=[...new Set([...SEED,...P.flatMap(p=>p.categorias)])].sort((a,b)=>a.localeCompare(b,'es')).filter(c=>!cur.categorias.includes(c));
+  const all=grupos().filter(c=>!cur.categorias.includes(c));
   const pr=cur.compras.map(c=>c.precio).filter(x=>x!=null);
   const best=cur.compras.filter(c=>c.precio!=null&&c.lugar).sort((a,b)=>a.precio-b.precio)[0];
   const cs=[...cur.compras.entries()].sort((a,b)=>(b[1].fecha||'').localeCompare(a[1].fecha||''));
@@ -146,7 +156,7 @@ function commit(){
 }
 function addcat(){
   const i=$('#fc'),v=i.value.trim();if(!v)return;
-  if(!cur.categorias.some(c=>norm(c)===norm(v))){const ex=P.flatMap(p=>p.categorias).find(c=>norm(c)===norm(v));cur.categorias.push(ex||v)}
+  if(!cur.categorias.some(c=>norm(c)===norm(v))){const ex=grupos().find(c=>norm(c)===norm(v));if(!ex){G.push(v);gsave()}cur.categorias.push(ex||v)}
   nc=false;draw();
 }
 const resize=f=>new Promise(ok=>{const i=new Image(),u=URL.createObjectURL(f);i.onload=()=>{const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(ok,'image/jpeg',.8)};i.src=u});
@@ -233,6 +243,7 @@ $('#to').addEventListener('click',()=>{tg.value=$('#ta').value;$('#te').close();
 /* ---------- Lista y filtros ---------- */
 $('#q').addEventListener('input',ev=>{F.q=ev.target.value;render()});
 $('#br').addEventListener('click',()=>{F.rep=!F.rep;render()});
+$('#cc').addEventListener('change',ev=>{if(ev.target.value){F.cats.add(ev.target.value);render()}});
 $('#cc').addEventListener('click',ev=>{const c=ev.target.dataset.c;if(c==null)return;F.cats.has(c)?F.cats.delete(c):F.cats.add(c);render()});
 $('#ls').addEventListener('click',async ev=>{
   const li=ev.target.closest('li[data-id]');if(!li)return;const id=+li.dataset.id;
@@ -240,6 +251,34 @@ $('#ls').addEventListener('click',async ev=>{
   ficha(id);
 });
 $('#nw').addEventListener('click',()=>ficha());
+
+/* ---------- Gestión de grupos ---------- */
+function gdraw(){
+  const n=c=>P.filter(p=>p.categorias.includes(c)).length;
+  $('#gl').innerHTML=grupos().map(c=>`<div class="cp"><span>${e(c)} <small class="mut">(${n(c)})</small></span><button data-g="ren" data-v="${e(c)}">Renombrar</button><button class="dg" data-g="del" data-v="${e(c)}">Eliminar</button></div>`).join('')||'<p class="mut">No hay grupos.</p>';
+}
+async function cambia(a,b){
+  G=G.filter(x=>x!==a);if(b&&!G.includes(b))G.push(b);gsave();
+  await tx('readwrite',st=>{P.forEach(p=>{if(p.categorias.includes(a)){p.categorias=[...new Set(p.categorias.map(x=>x===a?b:x).filter(Boolean))];st.put(p)}})});
+  if(F.cats.has(a)){F.cats.delete(a);if(b)F.cats.add(b)}
+  await load();render();
+}
+$('#xg').addEventListener('click',()=>{gdraw();$('#gg').showModal()});
+$('#gx').addEventListener('click',()=>$('#gg').close());
+$('#gl').addEventListener('click',async ev=>{
+  const b=ev.target.closest('[data-g]');if(!b)return;const c=b.dataset.v;
+  if(b.dataset.g==='del'){
+    const k=P.filter(p=>p.categorias.includes(c)).length;
+    if(!confirm(`¿Eliminar el grupo «${c}»?`+(k?` Se quitará de ${k} producto${k>1?'s':''}; los productos no se borran.`:'')))return;
+    await cambia(c,null);
+  }else{
+    const v=(prompt('Nuevo nombre del grupo:',c)||'').trim();if(!v||v===c)return;
+    const ex=grupos().find(x=>x!==c&&norm(x)===norm(v));
+    if(ex&&!confirm(`Ya existe «${ex}». ¿Fusionar «${c}» con ese grupo?`))return;
+    await cambia(c,ex||v);
+  }
+  gdraw();
+});
 
 /* ---------- Datos: compartir y copia de seguridad ---------- */
 const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
@@ -259,12 +298,12 @@ $('#xp').addEventListener('click',()=>{
 const b2d=b=>new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(b)});
 $('#xb').addEventListener('click',async()=>{
   const ps=[];for(const p of P)ps.push({...p,imagen:p.imagen?await b2d(p.imagen):null});
-  dl(new Blob([JSON.stringify({app:'MisKosikas',version:1,fecha:hoy(),productos:ps})],{type:'application/json'}),`MisKosikas-copia-${hoy()}.json`);
+  dl(new Blob([JSON.stringify({app:'MisKosikas',version:1,fecha:hoy(),grupos:G,productos:ps})],{type:'application/json'}),`MisKosikas-copia-${hoy()}.json`);
 });
 $('#ib').addEventListener('click',()=>$('#if').click());
 $('#if').addEventListener('change',async ev=>{
   const f=ev.target.files[0];ev.target.value='';if(!f)return;const im=$('#im');im.hidden=false;
-  try{const d=JSON.parse(await f.text());if(d.app!=='MisKosikas'||!Array.isArray(d.productos))throw 0;pend=d.productos;
+  try{const d=JSON.parse(await f.text());if(d.app!=='MisKosikas'||!Array.isArray(d.productos))throw 0;pend=d.productos;pendG=Array.isArray(d.grupos)?d.grupos:[];
     im.innerHTML=`<p>La copia contiene ${pend.length} productos. ¿Qué quieres hacer?</p><div class="row"><button class="dg" data-m="sust">Sustituir los datos actuales</button><button class="pri" data-m="add">Añadir sin duplicar</button><button data-m="no">Cancelar</button></div>`;
   }catch{im.textContent='El archivo no es una copia válida de MisKosikas.'}
 });
@@ -275,7 +314,7 @@ $('#im').addEventListener('click',async ev=>{
   let add=its;
   if(m==='add'){const k=p=>norm(p.nombre)+'|'+norm(p.detalle||''),have=new Set(P.map(k));add=its.filter(p=>!have.has(k(p)))}
   await tx('readwrite',s=>{if(m==='sust')s.clear();add.forEach(i=>s.put(i))});
-  await load();render();im.textContent=m==='sust'?`Datos sustituidos: ${add.length} productos.`:`Se han añadido ${add.length} productos nuevos.`;
+  G=m==='sust'?[...pendG]:[...new Set([...G,...pendG])];gsave();await load();render();im.textContent=m==='sust'?`Datos sustituidos: ${add.length} productos.`:`Se han añadido ${add.length} productos nuevos.`;
 });
 
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
