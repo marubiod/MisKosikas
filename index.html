@@ -80,7 +80,7 @@ textarea[data-te]{cursor:pointer}
 <div id="im" class="box" hidden></div>
 <div class="act"><button id="dx">Cerrar</button></div>
 </dialog>
-<dialog id="ed"><h2>Ajustar foto</h2><canvas id="ec" width="300" height="300"></canvas><label for="ez">Ampliar</label><input id="ez" type="range" min="1" max="4" step="0.01" value="1"><div class="row" style="margin-top:.6rem"><label class="in"><input id="em" type="checkbox" class="rp" checked> Mejorar color y contraste</label></div><p class="mut">Arrastra la foto para centrarla.</p><div class="act"><button id="ex">Cancelar</button><button id="eo" class="pri">Usar esta foto</button></div></dialog>
+<dialog id="ed"><h2>Ajustar foto</h2><canvas id="ec" width="300" height="300"></canvas><label for="ez">Ampliar</label><input id="ez" type="range" min="1" max="6" step="0.01" value="1"><div class="row" style="margin-top:.6rem"><label class="in"><input id="em" type="checkbox" class="rp" checked> Mejorar color y contraste</label></div><p class="mut">Arrastra la foto para centrarla.</p><div class="act"><button id="ex">Cancelar</button><button id="eo" class="pri">Usar esta foto</button></div></dialog>
 <dialog id="te"><h2 id="tt"></h2><textarea id="ta"></textarea><div class="act"><button id="tx">Cancelar</button><button id="to" class="pri">Aceptar</button></div></dialog>
 <dialog id="gg"><h2>Gestión de grupos</h2><div id="gl"></div><div class="act"><button id="gx">Cerrar</button></div></dialog>
 <section id="pa"></section>
@@ -189,18 +189,19 @@ $('#fd').addEventListener('change',ev=>{
 $('#fd').addEventListener('close',()=>{if(iu){URL.revokeObjectURL(iu);iu=''}$('#fd').innerHTML=''});
 
 /* ---------- Editor de foto ---------- */
-let src,zm=1,ox=0,oy=0,dr=null;
+let src,zm=1,ox=0,oy=0,dr=null,bg='#fff';
+function fondo(i){const c=document.createElement('canvas');c.width=c.height=1;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(i,0,0,1,1,0,0,1,1);const d=x.getImageData(0,0,1,1).data;return d[3]<128?'#fff':`rgb(${d[0]},${d[1]},${d[2]})`}
 const EC=$('#ec'),ex=EC.getContext('2d',{willReadFrequently:true});
 function editar(f){
   const u=URL.createObjectURL(f),i=new Image();
-  i.onload=()=>{URL.revokeObjectURL(u);src=i;zm=1;ox=oy=0;$('#ez').value=1;$('#em').checked=true;pintar();$('#ed').showModal()};
+  i.onload=()=>{URL.revokeObjectURL(u);src=i;const k=Math.min(i.width,i.height)/Math.max(i.width,i.height);$('#ez').min=k;zm=k;ox=oy=0;$('#ez').value=k;bg=fondo(i);$('#em').checked=true;pintar();$('#ed').showModal()};
   i.onerror=()=>{URL.revokeObjectURL(u);alert('No se puede leer esa imagen.')};
   i.src=u;
 }
 function pintar(){
-  const b=Math.max(300/src.width,300/src.height)*zm,w=src.width*b,h=src.height*b,mx=(w-300)/2,my=(h-300)/2;
+  const b=Math.max(300/src.width,300/src.height)*zm,w=src.width*b,h=src.height*b,mx=Math.max(0,(w-300)/2),my=Math.max(0,(h-300)/2);
   ox=Math.max(-mx,Math.min(mx,ox));oy=Math.max(-my,Math.min(my,oy));
-  ex.fillStyle='#fff';ex.fillRect(0,0,300,300);ex.drawImage(src,150+ox-w/2,150+oy-h/2,w,h);
+  ex.fillStyle=bg;ex.fillRect(0,0,300,300);ex.imageSmoothingQuality='high';ex.drawImage(src,150+ox-w/2,150+oy-h/2,w,h);
   if($('#em').checked)mejora();
 }
 function mejora(){
