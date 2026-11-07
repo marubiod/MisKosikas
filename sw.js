@@ -1,6 +1,6 @@
 // Service worker de MisKosikas: red primero, caché como respaldo (funciona sin conexión).
 // Sube el número de versión al publicar cambios para renovar la caché.
-const V = 'miskosikas-v5';
+const V = 'miskosikas-v7';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(FILES)));

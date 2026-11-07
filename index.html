@@ -54,15 +54,29 @@ textarea[data-te]{cursor:pointer}
 #ed input[type=range]{width:100%;accent-color:var(--ac)}
 #te textarea{width:100%;height:45vh;padding:.7rem;border:1px solid var(--ln);border-radius:8px;background:var(--sf);font-size:1.05rem}
 .fsel{width:auto;max-width:100%;border-radius:99px;padding:.3rem .7rem;font-size:.9rem}
+.tabs{display:flex;gap:.4rem;margin:.2rem 0 .8rem}.tabs button{flex:1;border-radius:99px}
+.tabs button[aria-pressed=true]{background:var(--ac);border-color:var(--ac);color:var(--bg);font-weight:600}
+#gf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;margin-top:.6rem}
+.cd{background:var(--sf);border:1px solid var(--ln);border-radius:10px;overflow:hidden;cursor:pointer}
+.cd img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--acs)}
+.cd div{padding:.4rem .5rem}.cd b{display:block;font-size:.92rem}.cd small{color:var(--mut)}
+#vw{width:calc(100vw - 1rem);max-width:900px}
+#vb{overflow:auto;max-height:68vh;border:1px solid var(--ln);border-radius:8px}
+#vb img{display:block;margin:0 auto}
+#nf .fi{max-height:220px}
 #pa{display:none}
 @media print{body>*:not(#pa){display:none!important}#pa{display:block;color:#000}#pa table{border-collapse:collapse;width:100%;font-size:11pt}#pa td,#pa th{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}}
 </style></head><body>
 <header><h1>MisKosikas</h1><button id="bd">Datos</button></header>
 <main>
+<div class="tabs"><button id="t1" aria-pressed="true">Productos</button><button id="t2" aria-pressed="false">Información</button></div>
+<div id="vp">
 <input id="q" type="search" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
 <div class="fl"><button id="br" class="ch" aria-pressed="false">Por reponer</button><span id="cc"></span></div>
 <p id="ct" class="mut"></p>
 <ul id="ls"></ul>
+</div>
+<div id="vf" hidden><input id="qf" type="search" placeholder="Buscar fichas por título o producto" aria-label="Buscar fichas"><p id="cf2" class="mut"></p><div id="gf"></div></div>
 </main>
 <button id="nw" class="fab pri">Nuevo producto</button>
 <dialog id="fd"></dialog>
@@ -74,15 +88,21 @@ textarea[data-te]{cursor:pointer}
 <h3>Grupos de productos</h3>
 <p class="mut">Renombra o elimina las categorías que has creado.</p>
 <div class="row"><button id="xg">Gestión Grupos</button></div>
-<h3>Copia de seguridad completa</h3>
-<p class="mut">Incluye productos, categorías, compras e imágenes.</p>
+<h3>Copia de productos</h3>
+<p class="mut">Productos, categorías, compras e imágenes (sin las fichas de Información).</p>
 <div class="row"><button id="xb">Exportar copia</button><button id="ib">Importar copia</button><input id="if" type="file" accept=".json,application/json" hidden></div>
 <div id="im" class="box" hidden></div>
+<h3>Copia de fichas</h3>
+<p class="mut">Fichas de Información con sus imágenes y vínculos. Importa antes la copia de productos para que los vínculos se restablezcan.</p>
+<div class="row"><button id="xf">Exportar fichas</button><button id="ibf">Importar fichas</button><input id="iff" type="file" accept=".json,application/json" hidden></div>
+<div id="imf" class="box" hidden></div>
 <div class="act"><button id="dx">Cerrar</button></div>
 </dialog>
 <dialog id="ed"><h2>Ajustar foto</h2><canvas id="ec" width="300" height="300"></canvas><label for="ez">Ampliar</label><input id="ez" type="range" min="1" max="6" step="0.01" value="1"><div class="row" style="margin-top:.6rem"><label class="in"><input id="em" type="checkbox" class="rp" checked> Mejorar color y contraste</label></div><p class="mut">Arrastra la foto para centrarla.</p><div class="act"><button id="ex">Cancelar</button><button id="eo" class="pri">Usar esta foto</button></div></dialog>
 <dialog id="te"><h2 id="tt"></h2><textarea id="ta"></textarea><div class="act"><button id="tx">Cancelar</button><button id="to" class="pri">Aceptar</button></div></dialog>
 <dialog id="gg"><h2>Gestión de grupos</h2><div id="gl"></div><div class="act"><button id="gx">Cerrar</button></div></dialog>
+<dialog id="nf"></dialog>
+<dialog id="vw"></dialog>
 <section id="pa"></section>
 <script>
 const $=s=>document.querySelector(s),hoy=()=>new Date().toLocaleDateString('sv');
@@ -91,14 +111,16 @@ const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/
 const eur=n=>n==null?'—':Number(n).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
 const last=p=>[...p.compras].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
 const SEED=['cuidado personal','moda','tecnología','hogar'];
-let nc=false,db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend,pendG=[];
+let nc=false,db,P=[],F={q:'',cats:new Set(),rep:false},urls=[],cur,cf,iu,pend,pendG=[],pendF=[],FI=[],uf=[],tab='p',inf,iv='',vu='',vid;
 let G;try{G=JSON.parse(localStorage.getItem('mk-grupos'))}catch{}
 if(!Array.isArray(G))G=[...SEED];
 const gsave=()=>{try{localStorage.setItem('mk-grupos',JSON.stringify(G))}catch{}};
 const grupos=()=>[...new Set([...G,...P.flatMap(p=>p.categorias)])].sort((a,b)=>a.localeCompare(b,'es'));
-const open=()=>new Promise((ok,ko)=>{const r=indexedDB.open('miskosikas',1);r.onupgradeneeded=()=>r.result.createObjectStore('p',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});
+const open=()=>new Promise((ok,ko)=>{const r=indexedDB.open('miskosikas',2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('p'))d.createObjectStore('p',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('f'))d.createObjectStore('f',{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});
 const tx=(m,f)=>new Promise((ok,ko)=>{const t=db.transaction('p',m),r=f(t.objectStore('p'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)});
 const load=async()=>{P=await tx('readonly',s=>s.getAll())};
+const txf=(m,f)=>new Promise((ok,ko)=>{const t=db.transaction('f',m),r=f(t.objectStore('f'));t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error)});
+const loadF=async()=>{FI=await txf('readonly',s=>s.getAll())};
 const save=async p=>{await tx('readwrite',s=>s.put(p));await load();render()};
 const vis=()=>P.filter(p=>(!F.rep||p.recomprar)&&(!F.cats.size||p.categorias.some(c=>F.cats.has(c)))&&(!F.q||norm(p.nombre).includes(norm(F.q)))).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 const url=b=>{const u=URL.createObjectURL(b);urls.push(u);return u};
@@ -147,6 +169,7 @@ ${nc?`<div class="row"><input id="fc" type="text" placeholder="Nombre de la nuev
 ${pr.length?`<p class="mut">${cur.compras.length} compra${cur.compras.length>1?'s':''} · mínimo ${eur(Math.min(...pr))} · máximo ${eur(Math.max(...pr))}${best?` · más barato en ${e(best.lugar)}`:''}</p>`:''}
 ${cs.map(([i,c])=>`<div class="cp"><span>${e(c.fecha||'Sin fecha')} · ${e(c.lugar||'Sin lugar')} · ${eur(c.precio)}</span><button data-a="edc" data-i="${i}">Editar</button><button class="dg" data-a="boc" data-i="${i}">Borrar</button></div>`).join('')}
 ${cf?`<div class="box"><label for="cfe">Fecha</label><input id="cfe" type="date" value="${e(cf.fecha)}"><label for="cfl">Lugar (comercio, url…)</label><input id="cfl" type="text" value="${e(cf.lugar)}"><label for="cfp">Precio (€)</label><input id="cfp" type="number" step="0.01" min="0" inputmode="decimal" value="${e(cf.precio)}"><div class="act"><button data-a="nocf">Cancelar</button><button class="pri" data-a="okcf">${cf.i<0?'Registrar compra':'Guardar cambios'}</button></div></div>`:`<div class="row" style="margin-top:.5rem"><button data-a="newc">Registrar compra</button></div>`}
+${cur.id&&FI.some(f=>f.productos.includes(cur.id))?`<h3>Información</h3><div class="cs">${FI.filter(f=>f.productos.includes(cur.id)).map(f=>`<button data-a="vf" data-v="${f.id}">${e(f.titulo)}</button>`).join('')}</div>`:''}
 <div class="act">${cur.id?'<button class="dg" data-a="del" style="margin-right:auto">Eliminar producto</button>':''}<button data-a="x">Cancelar</button><button class="pri" data-a="ok">Guardar producto</button></div>`;
 }
 function commit(){
@@ -166,6 +189,7 @@ $('#fd').addEventListener('click',async ev=>{
   if(a==='x')return $('#fd').close();
   if(a==='addcat')return addcat();
   if(a==='delcat'){sync();cur.categorias=cur.categorias.filter(c=>c!==b.dataset.v);return draw()}
+  if(a==='vf')return ver(+b.dataset.v);
   if(a==='nonc'){sync();nc=false;return draw()}
   if(a==='noimg'){sync();cur.imagen=null;return draw()}
   if(a==='newc'){sync();const l=last(cur);cf={i:-1,fecha:hoy(),lugar:l?.lugar||'',precio:l?.precio??''};return draw()}
@@ -173,7 +197,7 @@ $('#fd').addEventListener('click',async ev=>{
   if(a==='boc'){if(confirm('¿Borrar esta compra?')){sync();cur.compras.splice(+b.dataset.i,1);draw()}return}
   if(a==='nocf'){sync();cf=null;return draw()}
   if(a==='okcf'){sync();commit();return draw()}
-  if(a==='del'){if(confirm('¿Eliminar este producto y todo su historial?')){await tx('readwrite',s=>s.delete(cur.id));await load();render();$('#fd').close()}return}
+  if(a==='del'){if(confirm('¿Eliminar este producto y todo su historial?')){const di=cur.id;await tx('readwrite',s=>s.delete(di));await txf('readwrite',s=>{FI.forEach(f=>{if(f.productos.includes(di)){f.productos=f.productos.filter(i=>i!==di);s.put(f)}})});await load();await loadF();render();rendF();$('#fd').close()}return}
   if(a==='ok'){
     sync();const fc=$('#fc'),v=fc?fc.value.trim():'';if(v)addcat();
     if(!cur.nombre.trim()){alert('Escribe el nombre del producto.');return $('#fn').focus()}
@@ -251,7 +275,98 @@ $('#ls').addEventListener('click',async ev=>{
   if(ev.target.classList.contains('rp')){const p=P.find(x=>x.id===id);p.recomprar=ev.target.checked;await save(p);return}
   ficha(id);
 });
-$('#nw').addEventListener('click',()=>ficha());
+$('#nw').addEventListener('click',()=>tab==='p'?ficha():nuevaF());
+
+/* ---------- Información (fichas visuales) ---------- */
+[['t1','p'],['t2','f']].forEach(([id,t])=>$('#'+id).addEventListener('click',()=>{
+  tab=t;$('#vp').hidden=t!=='p';$('#vf').hidden=t!=='f';
+  $('#t1').setAttribute('aria-pressed',t==='p');$('#t2').setAttribute('aria-pressed',t==='f');
+  $('#nw').textContent=t==='p'?'Nuevo producto':'Nueva ficha';
+}));
+const pn=f=>f.productos.map(i=>P.find(p=>p.id===i)?.nombre).filter(Boolean);
+function rendF(){
+  uf.forEach(u=>URL.revokeObjectURL(u));uf=[];
+  const q=norm($('#qf').value||''),v=FI.filter(f=>!q||norm(f.titulo+' '+pn(f).join(' ')).includes(q)).sort((a,b)=>a.titulo.localeCompare(b.titulo,'es'));
+  $('#cf2').textContent=FI.length?`${v.length} de ${FI.length} fichas`:'';
+  $('#gf').innerHTML=v.length?v.map(f=>{const u=URL.createObjectURL(f.imagen);uf.push(u);const n=pn(f);return `<div class="cd" data-f="${f.id}"><img src="${u}" alt=""><div><b>${e(f.titulo)}</b><small>${n.length?e(n.join(', ')):'Sin vincular'}</small></div></div>`}).join(''):`<p class="mut" style="grid-column:1/-1">${FI.length?'Ninguna ficha coincide.':'Aún no hay fichas. Pulsa «Nueva ficha» para añadir la primera.'}</p>`;
+}
+$('#qf').addEventListener('input',rendF);
+$('#gf').addEventListener('click',ev=>{const c=ev.target.closest('[data-f]');if(c)ver(+c.dataset.f)});
+const grande=f=>new Promise((ok,ko)=>{
+  const u=URL.createObjectURL(f),i=new Image();
+  i.onload=async()=>{URL.revokeObjectURL(u);const k=Math.min(1,1600/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.imageSmoothingQuality='high';x.drawImage(i,0,0,c.width,c.height);let q=.88,b;do{b=await new Promise(r=>c.toBlob(r,'image/jpeg',q));q-=.08}while(b.size>700000&&q>.5);ok(b)};
+  i.onerror=()=>{URL.revokeObjectURL(u);ko()};i.src=u;
+});
+function nuevaF(id){inf=id?structuredClone(FI.find(f=>f.id===id)):{titulo:'',productos:[],imagen:null};$('#nf').innerHTML='';drawF();$('#nf').showModal()}
+function drawF(){
+  const t=$('#nt');if(t)inf.titulo=t.value;
+  if(iv)URL.revokeObjectURL(iv);iv=inf.imagen?URL.createObjectURL(inf.imagen):'';
+  const libres=P.filter(p=>!inf.productos.includes(p.id)).sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  $('#nf').innerHTML=`<h2>${inf.id?'Ficha informativa':'Nueva ficha informativa'}</h2>
+<label for="nt">Título</label><input id="nt" type="text" value="${e(inf.titulo)}">
+<label for="nfi">Imagen (infografía)</label>${iv?`<img class="fi" src="${iv}" alt="">`:''}<input id="nfi" type="file" accept="image/*">
+<label for="np">Productos vinculados (opcional)</label>
+<div class="cs">${inf.productos.length?inf.productos.map(i=>{const p=P.find(x=>x.id===i);return p?`<button data-n="unl" data-v="${i}" aria-label="Desvincular ${e(p.nombre)}">${e(p.nombre)} ×</button>`:''}).join(''):'<span class="mut">Sin vincular</span>'}</div>
+<select id="np" aria-label="Vincular producto"><option value="">Vincular producto…</option>${libres.map(p=>`<option value="${p.id}">${e(p.nombre)}</option>`).join('')}</select>
+<div class="act">${inf.id?'<button class="dg" data-n="del" style="margin-right:auto">Eliminar ficha</button>':''}<button data-n="x">Cancelar</button><button class="pri" data-n="ok">Guardar ficha</button></div>`;
+}
+$('#nf').addEventListener('click',async ev=>{
+  const b=ev.target.closest('[data-n]');if(!b)return;const a=b.dataset.n;
+  if(a==='x')return $('#nf').close();
+  if(a==='unl'){drawF();inf.productos=inf.productos.filter(i=>i!==+b.dataset.v);return drawF()}
+  if(a==='del'){if(confirm('¿Eliminar esta ficha informativa?')){await txf('readwrite',s=>s.delete(inf.id));await loadF();rendF();$('#nf').close()}return}
+  if(a==='ok'){
+    inf.titulo=$('#nt').value.trim();
+    if(!inf.titulo)return alert('Escribe un título para la ficha.');
+    if(!inf.imagen)return alert('Añade la imagen de la ficha.');
+    await txf('readwrite',s=>s.put(inf));await loadF();rendF();$('#nf').close();
+  }
+});
+$('#nf').addEventListener('change',async ev=>{
+  if(ev.target.id==='np'&&ev.target.value){drawF();inf.productos.push(+ev.target.value);drawF()}
+  if(ev.target.id==='nfi'&&ev.target.files[0]){try{const b=await grande(ev.target.files[0]);drawF();inf.imagen=b;drawF()}catch{alert('No se puede leer esa imagen.')}}
+});
+$('#nf').addEventListener('close',()=>{if(iv){URL.revokeObjectURL(iv);iv=''}$('#nf').innerHTML=''});
+function ver(id){
+  const f=FI.find(x=>x.id===id);if(!f)return;vid=id;if(vu)URL.revokeObjectURL(vu);vu=URL.createObjectURL(f.imagen);const n=pn(f);
+  $('#vw').innerHTML=`<h2>${e(f.titulo)}</h2>${n.length?`<p class="mut">${e(n.join(' · '))}</p>`:''}<div id="vb"><img id="vi" src="${vu}" alt="${e(f.titulo)}" style="width:100%"></div><div class="act" style="justify-content:space-between"><span class="row"><button data-w="-" aria-label="Reducir">−</button><button data-w="+" aria-label="Ampliar">+</button><button data-w="0">Ajustar</button></span><span class="row"><button data-w="ed">Editar</button><button class="pri" data-w="x">Cerrar</button></span></div>`;
+  if(!$('#vw').open)$('#vw').showModal();
+}
+let zv=100;
+$('#vw').addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-w]');if(!b)return;const a=b.dataset.w;
+  if(a==='x')return $('#vw').close();
+  if(a==='ed'){$('#vw').close();return nuevaF(vid)}
+  zv=a==='+'?Math.min(400,zv+50):a==='-'?Math.max(100,zv-50):100;$('#vi').style.width=zv+'%';
+});
+$('#vw').addEventListener('close',()=>{zv=100;if(vu){URL.revokeObjectURL(vu);vu=''}$('#vw').innerHTML=''});
+
+/* ---------- Copia de fichas (independiente) ---------- */
+$('#xf').addEventListener('click',async()=>{
+  if(!FI.length)return alert('Todavía no hay fichas que exportar.');
+  const fs=[];for(const f of FI)fs.push({titulo:f.titulo,imagen:await b2d(f.imagen),vinculos:f.productos.map(i=>P.find(p=>p.id===i)).filter(Boolean).map(p=>({nombre:p.nombre,detalle:p.detalle||''}))});
+  dl(new Blob([JSON.stringify({app:'MisKosikas',tipo:'fichas',version:2,fecha:hoy(),fichas:fs})],{type:'application/json'}),`MisKosikas-fichas-${hoy()}.json`);
+});
+$('#ibf').addEventListener('click',()=>$('#iff').click());
+$('#iff').addEventListener('change',async ev=>{
+  const f=ev.target.files[0];ev.target.value='';if(!f)return;const im=$('#imf');im.hidden=false;
+  try{const d=JSON.parse(await f.text());if(d.app!=='MisKosikas'||!Array.isArray(d.fichas))throw 0;
+    const km={};(d.productos||[]).forEach(x=>km[x.id]={nombre:x.nombre,detalle:x.detalle||''});
+    pendF=d.fichas.map(x=>({titulo:x.titulo,imagen:x.imagen,vinculos:x.vinculos||(x.productos||[]).map(i=>km[i]).filter(Boolean)}));
+    im.innerHTML=`<p>El archivo contiene ${pendF.length} fichas. ¿Qué quieres hacer?</p><div class="row"><button class="dg" data-m="sust">Sustituir las fichas actuales</button><button class="pri" data-m="add">Añadir sin duplicar</button><button data-m="no">Cancelar</button></div>`;
+  }catch{im.textContent='El archivo no contiene fichas de MisKosikas.'}
+});
+$('#imf').addEventListener('click',async ev=>{
+  const m=ev.target.dataset.m;if(!m)return;const im=$('#imf');
+  if(m==='no'){im.hidden=true;return}
+  const key=p=>norm(p.nombre)+'|'+norm(p.detalle||''),pk=new Map(P.map(p=>[key(p),p.id])),hf=new Set(FI.map(x=>norm(x.titulo))),fs=[];let perd=0;
+  for(const x of pendF){if(!x.imagen||(m==='add'&&hf.has(norm(x.titulo))))continue;
+    const ids=[];(x.vinculos||[]).forEach(v=>{const i=pk.get(key(v));i?ids.push(i):perd++});
+    fs.push({titulo:x.titulo,productos:[...new Set(ids)],imagen:await (await fetch(x.imagen)).blob()})}
+  await txf('readwrite',s=>{if(m==='sust')s.clear();fs.forEach(o=>s.put(o))});
+  await loadF();rendF();
+  im.textContent=`${fs.length} fichas importadas.`+(perd?` ${perd} vínculos no se restablecieron porque esos productos no existen en la app (importa antes la copia de productos).`:'');
+});
 
 /* ---------- Gestión de grupos ---------- */
 function gdraw(){
@@ -284,7 +399,7 @@ $('#gl').addEventListener('click',async ev=>{
 /* ---------- Datos: compartir y copia de seguridad ---------- */
 const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 const q=s=>`"${String(s??'').replace(/"/g,'""')}"`;
-$('#bd').addEventListener('click',()=>{$('#im').hidden=true;$('#dd').showModal()});
+$('#bd').addEventListener('click',()=>{$('#im').hidden=true;$('#imf').hidden=true;$('#dd').showModal()});
 $('#dx').addEventListener('click',()=>$('#dd').close());
 $('#xc').addEventListener('click',()=>{
   const h=['Nombre','Categorías','Detalle','Uso','Fecha última compra','Lugar','Precio','Comprar de nuevo'];
@@ -311,13 +426,15 @@ $('#if').addEventListener('change',async ev=>{
 $('#im').addEventListener('click',async ev=>{
   const m=ev.target.dataset.m;if(!m)return;const im=$('#im');
   if(m==='no'){im.hidden=true;return}
-  const its=[];for(const x of pend){const o={...x,categorias:x.categorias||[],compras:x.compras||[],imagen:x.imagen?await (await fetch(x.imagen)).blob():null};delete o.id;its.push(o)}
-  let add=its;
-  if(m==='add'){const k=p=>norm(p.nombre)+'|'+norm(p.detalle||''),have=new Set(P.map(k));add=its.filter(p=>!have.has(k(p)))}
-  await tx('readwrite',s=>{if(m==='sust')s.clear();add.forEach(i=>s.put(i))});
-  G=m==='sust'?[...pendG]:[...new Set([...G,...pendG])];gsave();await load();render();im.textContent=m==='sust'?`Datos sustituidos: ${add.length} productos.`:`Se han añadido ${add.length} productos nuevos.`;
+  const bl=async u=>u?await (await fetch(u)).blob():null,key=p=>norm(p.nombre)+'|'+norm(p.detalle||''),old=[...P],have=new Set(P.map(key)),its=[];
+  for(const x of pend){const o={...x,categorias:x.categorias||[],compras:x.compras||[],imagen:await bl(x.imagen)};delete o.id;if(!(m==='add'&&have.has(key(o))))its.push(o)}
+  await tx('readwrite',s=>{if(m==='sust')s.clear();its.forEach(o=>s.put(o))});
+  G=m==='sust'?[...pendG]:[...new Set([...G,...pendG])];gsave();await load();
+  if(m==='sust')await txf('readwrite',s=>{FI.forEach(f=>{f.productos=f.productos.map(i=>{const o=old.find(p=>p.id===i);return o&&P.find(p=>key(p)===key(o))?.id}).filter(Boolean);s.put(f)})});
+  await loadF();render();rendF();
+  im.textContent=m==='sust'?`Datos sustituidos: ${its.length} productos.`:`Se han añadido ${its.length} productos nuevos.`;
 });
 
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js');
-open().then(async d=>{db=d;await load();render()}).catch(()=>{$('#ls').innerHTML='<li class="em">No se puede usar el almacenamiento del navegador. Abre el archivo en un navegador normal, sin modo privado.</li>'});
+open().then(async d=>{db=d;await load();await loadF();render();rendF()}).catch(()=>{$('#ls').innerHTML='<li class="em">No se puede usar el almacenamiento del navegador. Abre el archivo en un navegador normal, sin modo privado.</li>'});
 </script></body></html>

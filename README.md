@@ -9,7 +9,8 @@ App web local para controlar productos de uso diario: consultar sus detalles, ll
 - Casilla **Comprar de nuevo**, que se desmarca sola al registrar una compra.
 - Buscador por nombre y filtros acumulativos por categoría y por reposición.
 - Exportación de lo filtrado a PDF y CSV.
-- Copia de seguridad completa (exportar e importar, con imágenes).
+- Copias de seguridad independientes de productos y de fichas (exportar e importar, con imágenes).
+- Pestaña **Información**: infografías y fichas visuales en imagen, con visor ampliable y vinculables a uno o varios productos (o a ninguno).
 - Funciona sin conexión e instalable como app en móvil y ordenador.
 
 ## Privacidad
